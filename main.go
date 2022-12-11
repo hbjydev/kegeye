@@ -25,7 +25,8 @@ var cmd = &Z.Cmd{
       data, err := kegeye.GetDexFromRepo(owner, repo)
       if err != nil {
         _ = c.Error(err)
-        _ = c.AbortWithError(500, errors.New("invalid dex format"))
+        e := c.AbortWithError(500, errors.New("invalid dex format"))
+        _ = e.SetType(gin.ErrorTypePublic)
         return
       }
 
@@ -44,7 +45,8 @@ var cmd = &Z.Cmd{
       data, err := kegeye.ReadDexEntry(owner, repo, id)
       if err != nil {
         _ = c.Error(err)
-        _ = c.AbortWithError(500, errors.New("invalid entry"))
+        e := c.AbortWithError(500, errors.New("invalid entry"))
+        _ = e.SetType(gin.ErrorTypePublic)
         return
       }
 
