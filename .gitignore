@@ -1,0 +1,7 @@
+# files
+.env
+.direnv
+
+# folders
+.serverless/
+node_modules/
