@@ -67,13 +67,11 @@ func GetDexFromRepo(owner string, repo string) (Dex, error) {
   }
 
   var path string
-  log.Println(bd)
   if bd == "" {
     path = "dex/nodes.tsv"
   } else {
     path = fmt.Sprintf("%v/dex/nodes.tsv", bd)
   }
-  log.Println(path)
 
   dexFile, err := commit.File(path)
   if err != nil {
@@ -140,22 +138,18 @@ func getBasedir(commit *object.Commit) (string, error) {
     var err error
 
     if p == "" {
+      log.Println("searching root")
       _, err = commit.File("keg")
     } else {
+      log.Printf("searching [%v]", p)
       _, err = commit.File(fmt.Sprintf("%v/keg", p))
     }
 
     if err != nil {
-      log.Println(err)
-      if err.Error() == "file not found" {
-        continue
-      } else {
-        return "", fmt.Errorf("error getting base dir: %v", err)
-      }
+      continue
+    } else {
+      return p, nil
     }
-
-    dir = p
-    break
   }
 
   if dir == "UNSET" {
