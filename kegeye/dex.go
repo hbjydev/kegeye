@@ -13,148 +13,148 @@ import (
 )
 
 var (
-  kegSearchPaths = []string{"", "docs"}
-  ErrNoKegFound = errors.New("no keg found in repo")
+	kegSearchPaths = []string{"", "docs"}
+	ErrNoKegFound  = errors.New("no keg found in repo")
 )
 
 type Dex struct {
-  Commit string `json:"commit"`
-  Nodes NodeMap `json:"nodes"`
+	Commit string  `json:"commit"`
+	Nodes  NodeMap `json:"nodes"`
 }
 
 func ReadDexEntry(owner string, repo string, id int) (string, error) {
-  commit, err := getRepoHead(owner, repo)
-  if err != nil {
-    return "", err
-  }
+	commit, err := getRepoHead(owner, repo)
+	if err != nil {
+		return "", err
+	}
 
-  bd, err := getBasedir(commit)
-  if err != nil {
-    return "", err
-  }
+	bd, err := getBasedir(commit)
+	if err != nil {
+		return "", err
+	}
 
-  var path string
-  if bd == "" {
-    path = fmt.Sprintf("%v/README.md", id)
-  } else {
-    path = fmt.Sprintf("%v/%v/README.md", bd, id)
-  }
+	var path string
+	if bd == "" {
+		path = fmt.Sprintf("%v/README.md", id)
+	} else {
+		path = fmt.Sprintf("%v/%v/README.md", bd, id)
+	}
 
-  entryFile, err := commit.File(path)
-  if err != nil {
-    return "", err
-  }
+	entryFile, err := commit.File(path)
+	if err != nil {
+		return "", err
+	}
 
-  entry, err := entryFile.Contents()
-  if err != nil {
-    return "", err
-  }
+	entry, err := entryFile.Contents()
+	if err != nil {
+		return "", err
+	}
 
-  return entry, nil
+	return entry, nil
 }
 
 func GetDexFromRepo(owner string, repo string) (Dex, error) {
-  d := Dex{}
+	d := Dex{}
 
-  commit, err := getRepoHead(owner, repo)
-  if err != nil {
-    return Dex{}, fmt.Errorf("error getting repo head: %v", err)
-  }
+	commit, err := getRepoHead(owner, repo)
+	if err != nil {
+		return Dex{}, fmt.Errorf("error getting repo head: %v", err)
+	}
 
-  bd, err := getBasedir(commit)
-  if err != nil {
-    return Dex{}, fmt.Errorf("error getting base dir: %v", err)
-  }
+	bd, err := getBasedir(commit)
+	if err != nil {
+		return Dex{}, fmt.Errorf("error getting base dir: %v", err)
+	}
 
-  var path string
-  if bd == "" {
-    path = "dex/nodes.tsv"
-  } else {
-    path = fmt.Sprintf("%v/dex/nodes.tsv", bd)
-  }
+	var path string
+	if bd == "" {
+		path = "dex/nodes.tsv"
+	} else {
+		path = fmt.Sprintf("%v/dex/nodes.tsv", bd)
+	}
 
-  dexFile, err := commit.File(path)
-  if err != nil {
-    return Dex{}, fmt.Errorf("error reading dex file: %v", err)
-  }
+	dexFile, err := commit.File(path)
+	if err != nil {
+		return Dex{}, fmt.Errorf("error reading dex file: %v", err)
+	}
 
-  dex, err := dexFile.Contents()
-  if err != nil {
-    return Dex{}, fmt.Errorf("error reading tsv file: %v", err)
-  }
+	dex, err := dexFile.Contents()
+	if err != nil {
+		return Dex{}, fmt.Errorf("error reading tsv file: %v", err)
+	}
 
-  sr := strings.NewReader(dex)
-  r := csv.NewReader(sr)
-  r.Comma = '\t'
-  r.LazyQuotes = true
+	sr := strings.NewReader(dex)
+	r := csv.NewReader(sr)
+	r.Comma = '\t'
+	r.LazyQuotes = true
 
-  data, err := r.ReadAll()
-  if err != nil {
-    return Dex{}, fmt.Errorf("error reading tsv entries: %v", err)
-  }
+	data, err := r.ReadAll()
+	if err != nil {
+		return Dex{}, fmt.Errorf("error reading tsv entries: %v", err)
+	}
 
-  nodes, err := NodeSliceFromTsv(data)
-  if err != nil {
-    return Dex{}, fmt.Errorf("error getting node slice from tsv: %v", err)
-  }
+	nodes, err := NodeSliceFromTsv(data)
+	if err != nil {
+		return Dex{}, fmt.Errorf("error getting node slice from tsv: %v", err)
+	}
 
-  m := nodes.ToNodeMap()
+	m := nodes.ToNodeMap()
 
-  d.Commit = commit.Hash.String()
-  d.Nodes = m
+	d.Commit = commit.Hash.String()
+	d.Nodes = m
 
-  return d, nil
+	return d, nil
 }
 
 func getRepoHead(owner string, repo string) (*object.Commit, error) {
-  s := memory.NewStorage()
+	s := memory.NewStorage()
 
-  e, err := git.Clone(s, nil, &git.CloneOptions{
-    URL: fmt.Sprintf("https://github.com/%v/%v.git", owner, repo),
-    Tags: git.NoTags,
-    Depth: 1,
-  })
-  if err != nil {
-    return nil, fmt.Errorf("error cloning keg repo in getRepoHead: %v", err)
-  }
+	e, err := git.Clone(s, nil, &git.CloneOptions{
+		URL:   fmt.Sprintf("https://github.com/%v/%v.git", owner, repo),
+		Tags:  git.NoTags,
+		Depth: 1,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error cloning keg repo in getRepoHead: %v", err)
+	}
 
-  head, err := e.Head()
-  if err != nil {
-    return nil, fmt.Errorf("error getting HEAD hash in getRepoHead: %v", err)
-  }
+	head, err := e.Head()
+	if err != nil {
+		return nil, fmt.Errorf("error getting HEAD hash in getRepoHead: %v", err)
+	}
 
-  obj, err := e.CommitObject(head.Hash())
-  if err != nil {
-    return nil, fmt.Errorf("error getting HEAD commit in getRepoHead: %v", err)
-  }
+	obj, err := e.CommitObject(head.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("error getting HEAD commit in getRepoHead: %v", err)
+	}
 
-  return obj, nil
+	return obj, nil
 }
 
-func getBasedir(commit *object.Commit) (string, error) { 
-  dir := "UNSET"
+func getBasedir(commit *object.Commit) (string, error) {
+	dir := "UNSET"
 
-  for _, p := range kegSearchPaths {
-    var err error
+	for _, p := range kegSearchPaths {
+		var err error
 
-    if p == "" {
-      log.Println("searching root")
-      _, err = commit.File("keg")
-    } else {
-      log.Printf("searching [%v]", p)
-      _, err = commit.File(fmt.Sprintf("%v/keg", p))
-    }
+		if p == "" {
+			log.Println("searching root")
+			_, err = commit.File("keg")
+		} else {
+			log.Printf("searching [%v]", p)
+			_, err = commit.File(fmt.Sprintf("%v/keg", p))
+		}
 
-    if err != nil {
-      continue
-    } else {
-      return p, nil
-    }
-  }
+		if err != nil {
+			continue
+		} else {
+			return p, nil
+		}
+	}
 
-  if dir == "UNSET" {
-    return "", ErrNoKegFound
-  }
+	if dir == "UNSET" {
+		return "", ErrNoKegFound
+	}
 
-  return dir, nil
+	return dir, nil
 }
