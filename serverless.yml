@@ -1,0 +1,25 @@
+app: kegeye
+frameworkVersion: '3'
+
+service: kegeye
+org: hbjydev
+
+provider:
+  name: aws
+  runtime: go1.x
+
+package:
+  patterns:
+    - '!./**'
+    - ./bin/**
+
+functions:
+  hello:
+    handler: bin/sls
+    events:
+      - httpApi:
+          path: /
+          method: any
+      - httpApi:
+          path: /{proxy+} 
+          method: any

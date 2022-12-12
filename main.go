@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var cmd = &Z.Cmd{
+var Cmd = &Z.Cmd{
 	Name: "kegeye",
 	Call: func(_ *Z.Cmd, _ ...string) (err error) {
 		var environment Environment
@@ -74,5 +74,5 @@ type Environment struct {
 }
 
 func main() {
-	cmd.Run()
+	Cmd.Run()
 }
