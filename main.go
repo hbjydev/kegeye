@@ -1,61 +1,76 @@
 package main
 
 import (
-	"errors"
-	"strconv"
+	"time"
 
+	"github.com/Netflix/go-env"
+	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
-	"github.com/hbjydev/kegeye/kegeye"
+	"github.com/hbjydev/kegeye/handlers"
 	Z "github.com/rwxrob/bonzai/z"
+	"go.uber.org/zap"
 )
 
 var cmd = &Z.Cmd{
 	Name: "kegeye",
-	Call: func(_ *Z.Cmd, _ ...string) error {
-		e := gin.Default()
+	Call: func(_ *Z.Cmd, _ ...string) (err error) {
+		var environment Environment
+		if _, err := env.UnmarshalFromEnviron(&environment); err != nil {
+			return err
+		}
 
-		e.GET("/", func(c *gin.Context) {
-			c.JSON(200, gin.H{"hello": "world"})
-		})
+		var l *zap.Logger
+		if environment.Env == "production" {
+			gin.SetMode(gin.ReleaseMode)
 
-		e.GET("/keg/:owner/:repo", func(c *gin.Context) {
-			owner := c.Param("owner")
-			repo := c.Param("repo")
-
-			data, err := kegeye.GetDexFromRepo(owner, repo)
+			l, err = zap.NewProduction()
 			if err != nil {
-				_ = c.Error(err)
-				e := c.AbortWithError(500, errors.New("invalid dex format"))
-				_ = e.SetType(gin.ErrorTypePublic)
 				return
 			}
+		} else {
+			gin.SetMode(gin.DebugMode)
 
-			c.JSON(200, gin.H{"dex": data})
-		})
-
-		e.GET("/keg/:owner/:repo/:id", func(c *gin.Context) {
-			owner := c.Param("owner")
-			repo := c.Param("repo")
-			idStr := c.Param("id")
-			id, err := strconv.Atoi(idStr)
+			l, err = zap.NewDevelopment()
 			if err != nil {
-				c.AbortWithStatusJSON(400, gin.H{"error": "invalid id format, must be int"})
-			}
-
-			data, err := kegeye.ReadDexEntry(owner, repo, id)
-			if err != nil {
-				_ = c.Error(err)
-				e := c.AbortWithError(500, errors.New("invalid entry"))
-				_ = e.SetType(gin.ErrorTypePublic)
 				return
 			}
+		}
 
-			c.Header("Content-Type", "text/markdown")
-			c.String(200, data)
-		})
+		e := gin.New()
+
+		e.Use(ginzap.Ginzap(l, time.RFC3339, true))
+		e.Use(ginzap.RecoveryWithZap(l, false))
+
+    handlers.RegisterDexHandler(e, l)
+
+		//e.GET("/keg/:owner/:repo/:id", func(c *gin.Context) {
+		//	owner := c.Param("owner")
+		//	repo := c.Param("repo")
+		//	idStr := c.Param("id")
+		//	id, err := strconv.Atoi(idStr)
+		//	if err != nil {
+		//		c.AbortWithStatusJSON(400, gin.H{"error": "invalid id format, must be int"})
+		//	}
+
+		//	data, err := kegeye.ReadDexEntry(owner, repo, id)
+		//	if err != nil {
+		//		_ = c.Error(err)
+		//		e := c.AbortWithError(500, errors.New("invalid entry"))
+		//		_ = e.SetType(gin.ErrorTypePublic)
+		//		return
+		//	}
+
+		//	c.Header("Content-Type", "text/markdown")
+		//	c.String(200, data)
+		//})
 
 		return e.Run()
 	},
+}
+
+type Environment struct {
+	Env         string `env:"KE_ENV,default=production,required=true"`
+	GithubToken string `env:"KE_GITHUB_TOKEN"`
 }
 
 func main() {

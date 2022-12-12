@@ -63,12 +63,8 @@ func (d *Dex) hydrateFromGithub() error {
   return nil
 }
 
-func (d *Dex) kegFromGithub() {
-  
-}
-
-func ReadDexEntry(owner string, repo string, id int) (string, error) {
-	commit, err := getRepoHead(owner, repo)
+func ReadDexEntry(url string, id int) (string, error) {
+	commit, err := getRepoHead(url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -98,10 +94,10 @@ func ReadDexEntry(owner string, repo string, id int) (string, error) {
 	return entry, nil
 }
 
-func GetDexFromRepo(owner string, repo string) (Dex, error) {
+func GetDexFromGit(cloneUrl string) (Dex, error) {
 	d := Dex{}
 
-	commit, err := getRepoHead(owner, repo)
+	commit, err := getRepoHead(cloneUrl, nil)
 	if err != nil {
 		return Dex{}, fmt.Errorf("error getting repo head: %v", err)
 	}
