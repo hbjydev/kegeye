@@ -8,18 +8,63 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
 )
 
 var (
 	kegSearchPaths = []string{"", "docs"}
+
+  ErrUnsupportedSourceType = errors.New("unsupported dex source type")
 	ErrNoKegFound  = errors.New("no keg found in repo")
 )
 
+type DexSourceType string
+
+const (
+	DexSourceGithub DexSourceType = "github"
+)
+
 type Dex struct {
-	Commit string  `json:"commit"`
-	Nodes  NodeMap `json:"nodes"`
+	Source     string        `json:"source"`
+	SourceType DexSourceType `json:"sourceType"`
+	Commit     string        `json:"commit"`
+	Nodes      NodeMap       `json:"nodes"`
+
+  gitCommit *object.Commit `json:"-"`
+}
+
+func NewDex(sourceType DexSourceType, source string) Dex {
+  return Dex{
+    Source: source,
+    SourceType: sourceType,
+  }
+}
+
+func (d *Dex) Hydrate() error {
+  switch d.SourceType {
+  case DexSourceGithub:
+    return d.hydrateFromGithub()
+
+  default:
+    return ErrUnsupportedSourceType
+  }
+}
+
+func (d *Dex) hydrateFromGithub() error {
+  url := fmt.Sprintf("https://github.com/%v.git", d.Source)
+  commit, err := getRepoHead(url, nil)
+  if err != nil {
+    return err
+  }
+
+  d.gitCommit = commit
+  return nil
+}
+
+func (d *Dex) kegFromGithub() {
+  
 }
 
 func ReadDexEntry(owner string, repo string, id int) (string, error) {
@@ -106,14 +151,21 @@ func GetDexFromRepo(owner string, repo string) (Dex, error) {
 	return d, nil
 }
 
-func getRepoHead(owner string, repo string) (*object.Commit, error) {
+func getRepoHead(url string, branch *string) (*object.Commit, error) {
 	s := memory.NewStorage()
 
-	e, err := git.Clone(s, nil, &git.CloneOptions{
-		URL:   fmt.Sprintf("https://github.com/%v/%v.git", owner, repo),
+  opts := git.CloneOptions{
+		URL:   url,
 		Tags:  git.NoTags,
 		Depth: 1,
-	})
+	}
+
+  if branch != nil {
+    opts.ReferenceName = plumbing.NewBranchReferenceName(*branch)
+    opts.SingleBranch = true
+  }
+
+	e, err := git.Clone(s, nil, &opts)
 	if err != nil {
 		return nil, fmt.Errorf("error cloning keg repo in getRepoHead: %v", err)
 	}
