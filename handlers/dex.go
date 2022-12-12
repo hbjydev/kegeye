@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,7 @@ func RegisterDexHandler(e *gin.Engine, l *zap.Logger) {
 	{
 		r.GET("/:owner/:repo", githubRepoExists(l), fetchKeg)
 		r.GET("/:owner/:repo/dex", githubRepoExists(l), fetchDexEntries)
+    r.GET("/:owner/:repo/nodes/:id", githubRepoExists(l), fetchDexEntry)
 	}
 }
 
@@ -82,6 +84,50 @@ func fetchDexEntries(c *gin.Context) {
   }
 
 	c.JSON(200, dex.ByID())
+}
+
+func fetchDexEntry(c *gin.Context) {
+	cloneUrl := c.GetString("cloneUrl")
+	branch := c.GetString("branch")
+  idStr := c.Param("id")
+
+  id, err := strconv.Atoi(idStr)
+  if err != nil {
+		_ = c.AbortWithError(500, err)
+		return
+  }
+
+	keg, commit, err := fetchKegInfo(cloneUrl, branch)
+	if err != nil {
+		_ = c.AbortWithError(500, err)
+		return
+	}
+
+  dex, err := fetchDex(keg, commit)
+  if err != nil {
+		_ = c.AbortWithError(500, err)
+		return
+  }
+
+  en := dex.Lookup(id)
+  if en == nil {
+    c.AbortWithStatusJSON(200, gin.H{"error": "no such entry found"})
+		return
+  }
+
+  file, err := getKegFile(fmt.Sprintf("%v/README.md", en.ID()), commit)
+  if err != nil {
+    _ = c.AbortWithError(500, err)
+    return
+  }
+
+  contents, err := file.Contents()
+  if err != nil {
+    _ = c.AbortWithError(500, err)
+    return
+  }
+
+  c.String(200, contents)
 }
 
 func fetchDex(keg *keg.KegInfo, commit *object.Commit) (*_keg.Dex, error) {
