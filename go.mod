@@ -9,6 +9,8 @@ require (
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/google/go-github/v48 v48.2.0
 	github.com/rwxrob/bonzai v0.20.9
+	github.com/rwxrob/fn v0.4.0
+	github.com/rwxrob/keg v0.9.0
 	go.uber.org/zap v1.23.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -65,12 +67,10 @@ require (
 	github.com/rwxrob/compcmd v0.3.0 // indirect
 	github.com/rwxrob/compfile v0.1.12 // indirect
 	github.com/rwxrob/conf v0.8.2 // indirect
-	github.com/rwxrob/fn v0.4.0 // indirect
 	github.com/rwxrob/fs v0.20.0 // indirect
 	github.com/rwxrob/grep v0.2.5 // indirect
 	github.com/rwxrob/help v0.7.2 // indirect
 	github.com/rwxrob/json v0.8.0 // indirect
-	github.com/rwxrob/keg v0.9.0 // indirect
 	github.com/rwxrob/pegn v0.2.1 // indirect
 	github.com/rwxrob/structs v0.6.0 // indirect
 	github.com/rwxrob/term v0.2.9 // indirect
