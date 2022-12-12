@@ -16,6 +16,8 @@ package:
 functions:
   hello:
     handler: bin/sls
+    environment:
+      KE_GITHUB_TOKEN: "${param:githubToken}"
     events:
       - httpApi:
           path: /
